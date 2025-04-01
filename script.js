@@ -6,6 +6,7 @@ const speedText = document.getElementById("speed"); // Élément pour afficher l
 
 let lastPosition = null; // Dernière position enregistrée
 let lastTime = null; // Temps de la dernière position
+let watchId = null;
 
 // Fonction pour calculer la distance entre deux coordonnées (en km)
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -21,13 +22,17 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // Met à jour la position et calcule la vitesse
 function updatePosition(position) {
-    const { latitude, longitude, timestamp } = position.coords;
+    const { latitude, longitude, timestamp, speed } = position.coords;
     
     latText.textContent = latitude.toFixed(6);
     lonText.textContent = longitude.toFixed(6);
 
     let speedKmH = 0;
-    if (lastPosition && lastTime) {
+
+    // Si la vitesse est disponible dans les coordonnées, on l'affiche directement
+    if (speed !== null && speed !== undefined) {
+        speedKmH = speed * 3.6; // Convertir la vitesse de m/s en km/h
+    } else if (lastPosition && lastTime) {
         // Calculer la distance entre la dernière position et la nouvelle position
         const distance = calculateDistance(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
         
@@ -61,7 +66,7 @@ function error(err) {
 // Lancer le suivi GPS
 function startTracking() {
     if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(updatePosition, error, {
+        watchId = navigator.geolocation.watchPosition(updatePosition, error, {
             enableHighAccuracy: true,
             timeout: 5000,   // Si la position n'est pas mise à jour dans ce délai, une erreur sera générée
             maximumAge: 0    // Ne pas utiliser la position mise en cache, toujours récupérer une nouvelle position
@@ -79,7 +84,7 @@ function stopTracking() {
     }
 }
 
-// Initialiser la carte et démarrer le suivi
+// Lancer la carte et démarrer le suivi
 window.onload = function () {
     map = L.map('map').setView([48.8566, 2.3522], 13); // Paris par défaut
 
@@ -92,4 +97,18 @@ window.onload = function () {
 
     // Démarrer le suivi de la position
     startTracking();
+
+    // Calculer la vitesse toutes les 2 secondes
+    setInterval(() => {
+        if (lastPosition && lastTime) {
+            const distance = calculateDistance(lastPosition.latitude, lastPosition.longitude, lastPosition.latitude, lastPosition.longitude);
+            const timeElapsed = (new Date().getTime() - lastTime) / 1000; // Temps en secondes
+
+            let speedKmH = 0;
+            if (timeElapsed > 0) {
+                speedKmH = (distance / timeElapsed) * 3600; // Convertir la vitesse en km/h
+            }
+            speedText.textContent = speedKmH.toFixed(2) + " km/h";
+        }
+    }, 2000); // Mettre à jour la vitesse toutes les 2 secondes
 };
