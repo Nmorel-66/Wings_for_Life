@@ -1,4 +1,4 @@
-let map, marker, watchId;
+let map, marker;
 const statusText = document.getElementById("status");
 const latText = document.getElementById("latitude");
 const lonText = document.getElementById("longitude");
@@ -21,7 +21,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // Met à jour la position et calcule la vitesse
 function updatePosition(position) {
-    const { latitude, longitude } = position.coords;
+    const { latitude, longitude, timestamp } = position.coords;
     
     latText.textContent = latitude.toFixed(6);
     lonText.textContent = longitude.toFixed(6);
@@ -32,7 +32,7 @@ function updatePosition(position) {
         const distance = calculateDistance(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
         
         // Calculer le temps écoulé (en secondes) entre les deux positions
-        const timeElapsed = (position.timestamp - lastTime) / 1000; // Convertir en secondes
+        const timeElapsed = (timestamp - lastTime) / 1000; // Convertir en secondes
         
         // Calculer la vitesse (distance / temps) en km/h
         if (timeElapsed > 0) {
@@ -40,8 +40,8 @@ function updatePosition(position) {
         }
     }
 
-    // Afficher la vitesse
-    speedText.textContent = speedKmH.toFixed(2) + " km/h"; // Afficher la vitesse
+    // Afficher la vitesse en km/h
+    speedText.textContent = speedKmH.toFixed(2) + " km/h";
 
     // Mettre à jour la position sur la carte
     const newLatLng = [latitude, longitude];
@@ -50,7 +50,7 @@ function updatePosition(position) {
 
     // Sauvegarder la nouvelle position et le temps actuel pour le prochain calcul
     lastPosition = { latitude, longitude };
-    lastTime = position.timestamp;
+    lastTime = timestamp;
 }
 
 // Gestion des erreurs
@@ -61,7 +61,7 @@ function error(err) {
 // Lancer le suivi GPS
 function startTracking() {
     if ("geolocation" in navigator) {
-        watchId = navigator.geolocation.watchPosition(updatePosition, error, {
+        navigator.geolocation.watchPosition(updatePosition, error, {
             enableHighAccuracy: true,
             timeout: 5000,   // Si la position n'est pas mise à jour dans ce délai, une erreur sera générée
             maximumAge: 0    // Ne pas utiliser la position mise en cache, toujours récupérer une nouvelle position
@@ -90,5 +90,6 @@ window.onload = function () {
     marker = L.marker([48.8566, 2.3522]).addTo(map)
         .bindPopup("Position en attente...");
 
-    startTracking(); // Commencer le suivi GPS
+    // Démarrer le suivi de la position
+    startTracking();
 };
